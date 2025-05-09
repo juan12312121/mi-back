@@ -4,7 +4,6 @@ const sequelize = require('../config/config');
  * Obtener todos los grupos
  */
 
-console.log(sequelize); 
 
 const obtenerGrupos = async (req, res) => {
     try {
@@ -116,10 +115,54 @@ const eliminarGrupo = async (req, res) => {
   }
 };
 
+const obtenerGruposPorUsuario = async (req, res) => {
+  const { usuarioId } = req.params;  // Obtener el ID del usuario desde los parámetros de la ruta
+
+  try {
+    const grupos = await sequelize.query(`
+      SELECT
+        g.id           AS grupo_id,
+        g.nombre       AS grupo_nombre,
+        g.semestre     AS grupo_semestre,
+        c.id           AS carrera_id,
+        c.nombre       AS carrera_nombre
+      FROM grupos g
+      JOIN carreras c
+        ON g.carrera_id = c.id
+      WHERE g.carrera_id = (SELECT carrera_id FROM usuarios WHERE id = :usuarioId)
+      ORDER BY g.nombre
+    `, {
+      replacements: { usuarioId },  
+      type: sequelize.QueryTypes.SELECT
+    });
+
+    if (grupos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No se encontraron grupos para este usuario.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: grupos
+    });
+
+  } catch (error) {
+    console.error('Error al obtener grupos por usuario:', error);
+    return res.status(500).json({ success: false, error: 'No se pudieron obtener los grupos del usuario' });
+  }
+};
+
+
+
+
+
 module.exports = {
   obtenerGrupos,
   insertarGrupo,
   obtenerGrupoPorId,
   actualizarGrupo,
-  eliminarGrupo
+  eliminarGrupo,
+  obtenerGruposPorUsuario
 };

@@ -6,7 +6,8 @@ const {
   insertarGrupo,
   obtenerGrupoPorId,
   actualizarGrupo,
-  eliminarGrupo
+  eliminarGrupo,
+  obtenerGruposPorUsuario
 } = require('../controllers/gruposcontroller');
 
 // Obtener todos los grupos
@@ -23,5 +24,9 @@ router.put('/:id', actualizarGrupo);
 
 // Eliminar grupo por ID
 router.delete('/:id', eliminarGrupo);
+
+// Ruta para obtener grupos basados en el usuario
+router.get('/usuario/:usuarioId', obtenerGruposPorUsuario);
+
 
 module.exports = router;

@@ -13,7 +13,7 @@ const verificarToken = require('../middlewares/authMiddleware');
 router.post('/', verificarToken, crearCarrera);
 
 // Obtener todas las carreras
-router.get('/', verificarToken, obtenerCarreras);
+router.get('/',  obtenerCarreras);
 
 // Actualizar una carrera existente
 router.put('/:id', verificarToken, actualizarCarrera);

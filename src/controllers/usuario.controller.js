@@ -130,23 +130,38 @@ const registrarChecadorYJefe = async (req, res) => {
     res.status(500).json({ message: 'Error al crear el usuario', error: error.message });
   }
 };
-
-
 const login = async (req, res) => {
   const { correo, contrasena } = req.body;
 
   try {
     const usuario = await Usuario.findOne({ where: { correo } });
-    if (!usuario || !(await bcrypt.compare(contrasena, usuario.contrasena))) {
+
+    if (!usuario) {
+      return res.status(401).json({ message: 'Credenciales inválidas' });
+    }
+
+    const hashedPassword = usuario.contrasena;
+
+    const esValida =
+      // Intenta comparar con bcrypt
+      (await bcrypt.compare(contrasena, hashedPassword)) ||
+      // Si falla (por ejemplo no es hash), intenta comparación directa
+      contrasena === hashedPassword;
+
+    if (!esValida) {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
     const token = generarToken(usuario);
-    res.status(200).json({ usuario, token });
+    const { contrasena: _, ...usuarioSinPass } = usuario.toJSON();
+    res.status(200).json({ usuario: usuarioSinPass, token });
+
   } catch (error) {
     res.status(500).json({ message: 'Error en login', error: error.message });
   }
 };
+
+
 
 const crearAdministrador = async (req, res) => {
   const { nombre, correo, contrasena } = req.body;

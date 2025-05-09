@@ -1,7 +1,10 @@
-// src/models/usuario.model.js
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/config');
-const Carrera = require('./carrerasModel');  // Importa el modelo Carrera
+
+// Importar los modelos relacionados
+const Carrera = require('./carrerasModel');
+const Grupo = require('./gruposModel');
+const Rol = require('./rolesModel');  // Importar el modelo de Rol
 
 const Usuario = sequelize.define('Usuario', {
   id: {
@@ -28,17 +31,35 @@ const Usuario = sequelize.define('Usuario', {
   },
   carrera_id: {
     type: DataTypes.INTEGER,
-    allowNull: true  // Como este campo es opcional (puede ser NULL)
+    allowNull: true
+  },
+  grupo_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 }, {
   tableName: 'usuarios',
   timestamps: false
 });
 
-// Define la asociación con el modelo Carrera
+// Relaciones
+
+// Un usuario pertenece a una carrera
 Usuario.belongsTo(Carrera, {
-  foreignKey: 'carrera_id',  // El campo que establece la relación
-  as: 'carrera'  // Alias para poder acceder a la carrera desde un usuario
+  foreignKey: 'carrera_id',
+  as: 'carrera'
+});
+
+// Un usuario puede pertenecer a un grupo
+Usuario.belongsTo(Grupo, {
+  foreignKey: 'grupo_id',
+  as: 'grupo'
+});
+
+// Un usuario pertenece a un rol (relación agregada)
+Usuario.belongsTo(Rol, {
+  foreignKey: 'rol_id',
+  as: 'rol'  // Alias para la relación
 });
 
 module.exports = Usuario;

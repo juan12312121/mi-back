@@ -10,12 +10,12 @@ const carrerasRoutes = require('./routes/carreras.routes');
 const gruposRoutes = require('./routes/grupos.routes');
 const materiaRoutes = require('./routes/materiaRoutes');  // Ruta para materias
 const aulasRoutes = require('./routes/aulas.routes');
-const horariosRoutes = require('./routes/horarios.route');
 const asignacionesRoutes = require('./routes/asignaciones.routes')
-//const horariosController = require('./controllers/horarioController')
+const horariosRoutes = require('./routes/horarios.route')
+const asistenciaTemaRoutes = require('./routes/asistenciaTemaRoutes');  // Ruta para manejar la inserción en ambas tablas
+
 
 // Importar el middleware de verificación de token
-const verificarToken = require('./middlewares/authMiddleware');  // Asegúrate de que la ruta esté correcta
 
 app.use(cors());
 app.use(express.json());
@@ -27,8 +27,9 @@ app.use('/api/carreras', carrerasRoutes);
 app.use('/api/grupos', gruposRoutes); 
 app.use('/api/materias', materiaRoutes);  
 app.use('/api/aulas', aulasRoutes);  // Nueva ruta para
-//app.use('/api/horarios',horariosRoutes )
 app.use('/api/asignaciones', asignacionesRoutes);
-//app.use('/api/horarios', horariosController);
+app.use('/api/horarios', horariosRoutes);
+app.use('/api/asistencia-tema', asistenciaTemaRoutes);
+
 
 module.exports = app;

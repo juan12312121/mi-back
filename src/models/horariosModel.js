@@ -13,7 +13,7 @@ const Horario = sequelize.define('Horario', {
     allowNull: false,
   },
   dia_semana: {
-    type: DataTypes.ENUM('Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'),
+    type: DataTypes.ENUM('Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'),
     allowNull: false,
   },
   hora_inicio: {
@@ -54,3 +54,5 @@ const Horario = sequelize.define('Horario', {
   tableName: 'horarios',
   timestamps: false // Si no usas createdAt/updatedAt
 });
+
+module.exports = { Horario };
