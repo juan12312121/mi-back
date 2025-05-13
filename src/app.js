@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
+const path    = require('path');        // ← Agrega esta línea
+
 
 // Importar las rutas
 const usuarioRoutes = require('./routes/usuario.routes');
@@ -13,9 +15,13 @@ const aulasRoutes = require('./routes/aulas.routes');
 const asignacionesRoutes = require('./routes/asignaciones.routes')
 const horariosRoutes = require('./routes/horarios.route')
 const asistenciaTemaRoutes = require('./routes/asistenciaTemaRoutes');  // Ruta para manejar la inserción en ambas tablas
+const justificacionesRoutes = require('./routes/justificaciones.Routes');
 
 
-// Importar el middleware de verificación de token
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, 'uploads'))
+);
 
 app.use(cors());
 app.use(express.json());
@@ -30,6 +36,7 @@ app.use('/api/aulas', aulasRoutes);  // Nueva ruta para
 app.use('/api/asignaciones', asignacionesRoutes);
 app.use('/api/horarios', horariosRoutes);
 app.use('/api/asistencia-tema', asistenciaTemaRoutes);
+app.use('/api/justificaciones',justificacionesRoutes);
 
 
 module.exports = app;

@@ -493,6 +493,77 @@ const actualizarProfesor = async (req, res) => {
 };
 
 
+const listarHorariosProfesores = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log('📥 Solicitud recibida para listar horarios del profesor con ID:', id);
+
+    let query = 'SELECT * FROM vista_horarios_profesores';
+    const replacements = [];
+
+    if (id) {
+      query += ' WHERE profesor_id = ?';
+      replacements.push(id);
+    }
+
+    console.log('📄 Consulta a ejecutar:', query);
+    console.log('📦 Reemplazos:', replacements);
+
+    // Ejecuta la consulta sobre la vista
+    const [horariosProfesores] = await sequelize.query(query, { replacements });
+
+    console.log('📊 Resultados obtenidos:', horariosProfesores);
+
+    if (!horariosProfesores.length) {
+      console.warn('⚠️ No se encontraron horarios para el profesor con ID:', id);
+      return res.status(404).json({ message: 'No se encontraron horarios para el criterio dado' });
+    }
+
+    res.json({ horariosProfesores });
+  } catch (error) {
+    console.error('❌ Error al listar horarios de profesores:', error);
+    res.status(500).json({ message: 'Error al obtener horarios', error: error.message });
+  }
+};
+
+const obtenerAsistenciasProfesor = async (req, res) => {
+  try {
+    const { profesor_id } = req.params;
+    
+    const [asistencias] = await sequelize.query(
+      'SELECT * FROM vista_asistencias_profesor WHERE profesor_id = ?',
+      {
+        replacements: [profesor_id]
+      }
+    );
+
+    if (!asistencias || asistencias.length === 0) {
+      return res.status(404).json({
+        message: 'No se encontraron registros de asistencia para este profesor'
+      });
+    }
+
+    // Filtrar registros únicos por asistencia_id
+    const asistenciasUnicas = asistencias.filter((item, index, self) =>
+      index === self.findIndex(t => t.asistencia_id === item.asistencia_id)
+    );
+
+    return res.status(200).json({
+      total: asistenciasUnicas.length,
+      asistencias: asistenciasUnicas
+    });
+
+  } catch (error) {
+    console.error('Error al obtener asistencias:', error);
+    return res.status(500).json({
+      message: 'Error al obtener registros de asistencia',
+      error: error.message
+    });
+  }
+};
+
+
 
 // ==============================
 // Exports
@@ -510,5 +581,7 @@ module.exports = {
   registrarChecadorYJefe ,
   registrarProfesor,
   listarProfesores,
-  actualizarProfesor
+  actualizarProfesor,
+  listarHorariosProfesores,
+  obtenerAsistenciasProfesor
 };

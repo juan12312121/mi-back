@@ -43,4 +43,30 @@ router.get('/jefes', authMiddleware, usuarioController.obtenerJefesCarrera);
 // Obtener usuario por ID
 router.get('/:id', authMiddleware, usuarioController.obtenerUsuarioPorId);
 
+router.get(
+  '/horarios-profesores/:id',
+
+  usuarioController.listarHorariosProfesores
+);
+
+router.get(
+  '/horarios-profesores',
+  authMiddleware,
+  usuarioController.listarHorariosProfesores
+);
+
+
+router.get(
+  '/asistencias-profesor',
+  
+  usuarioController.obtenerAsistenciasProfesor
+);
+
+// Obtener asistencias de un profesor específico
+router.get(
+  '/asistencias-profesor/:profesor_id',
+ 
+  usuarioController.obtenerAsistenciasProfesor
+);
+
 module.exports = router;
