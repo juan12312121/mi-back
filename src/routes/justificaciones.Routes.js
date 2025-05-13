@@ -42,7 +42,7 @@ router.post('/', upload.single('archivo_prueba'), crearJustificacion);
 
 // GET /api/justificaciones/ver-todas
 // Listar todas las justificaciones con su URL de archivo
-router.get('/ver-todas', async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const { total, justificaciones } = await obtenerTodasLasJustificaciones(req, res);
     // Construir la URL pública para cada archivo
