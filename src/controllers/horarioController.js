@@ -26,16 +26,26 @@ exports.obtenerHorariosConSQL = async (req, res) => {
         h.hora_inicio,
         h.hora_fin,
         h.grupo_id,
-        g.nombre AS grupo_nombre,
+        g.nombre         AS grupo_nombre,
         h.aula_id,
-        a.nombre AS aula_nombre,
+        a.nombre         AS aula_nombre,
         h.turno,
         h.tipo_duracion,
         h.duracion_clase,
-        h.tiempo_descanso
+        h.tiempo_descanso,
+
+        -- Campos nuevos:
+        m.id              AS materia_id,
+        m.nombre          AS materia_nombre,
+        u.id              AS profesor_id,
+        u.nombre          AS profesor_nombre
+
       FROM horarios h
-      LEFT JOIN grupos g ON h.grupo_id = g.id
-      LEFT JOIN aulas a ON h.aula_id = a.id
+      LEFT JOIN grupos     g ON h.grupo_id       = g.id
+      LEFT JOIN aulas      a ON h.aula_id        = a.id
+      LEFT JOIN asignaciones asg ON h.asignacion_id = asg.id
+      LEFT JOIN materias   m ON asg.materia_id    = m.id
+      LEFT JOIN usuarios   u ON asg.profesor_id   = u.id
     `);
     res.status(200).json({ success: true, data: resultados });
   } catch (error) {
@@ -43,6 +53,7 @@ exports.obtenerHorariosConSQL = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error al obtener horarios', error: error.message });
   }
 };
+
 
 // Obtener los valores ENUM disponibles para días, turnos y tipos de duración
 exports.obtenerValoresEnum = (req, res) => {
@@ -156,6 +167,7 @@ exports.obtenerHorariosPorChecador = async (req, res) => {
         g.id                              AS grupo_id,
         g.nombre                          AS grupo_nombre,
         h.id                              AS horario_id,
+        h.asignacion_id,                 -- 👈 añadimos el ID de asignación aquí
         h.dia_semana,
         FIELD(h.dia_semana,
               'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo') AS orden_dia,
@@ -207,7 +219,6 @@ exports.obtenerHorariosPorChecador = async (req, res) => {
         };
       }
 
-      // Aquí estamos agrupando también por día
       const diaIndex = acc[grupo_id].horarios.findIndex(h => h.dia_semana === dia_semana);
 
       if (diaIndex === -1) {
@@ -238,6 +249,7 @@ exports.obtenerHorariosPorChecador = async (req, res) => {
     });
   }
 };
+
 
 
 
