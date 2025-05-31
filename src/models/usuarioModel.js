@@ -5,7 +5,6 @@ const sequelize = require('../config/config');
 const Carrera = require('./carrerasModel');
 const Grupo = require('./gruposModel');
 const Rol = require('./rolesModel');  // Importar el modelo de Rol
-
 const Usuario = sequelize.define('Usuario', {
   id: {
     type: DataTypes.INTEGER,
