@@ -34,10 +34,6 @@ Carrera.belongsTo(Facultad, {
   as: 'facultad'  // Alias para acceder a la facultad
 });
 
-// Relación entre Carrera y Escuela
-Carrera.belongsTo(Escuela, {
-  foreignKey: 'escuela_id',  // Campo en Carrera que referencia a Escuela
-  as: 'escuela'  // Alias para acceder a la escuela
-});
+
 
 module.exports = Carrera;

@@ -102,60 +102,73 @@ const obtenerGrupos = async (req, res) => {
  */
 const insertarGrupo = async (req, res) => {
   const { nombre, carrera_id, semestre } = req.body;
-  const user = req.usuario; // Usuario obtenido del token
+  const user = req.usuario; // Ya se obtuvo en el middleware de autenticación
+
+  console.log("📥 Datos recibidos del body:", { nombre, carrera_id, semestre });
+  console.log("👤 Usuario autenticado:", user);
 
   try {
-    // 1. Validar autenticación (middleware ya lo hizo, pero verificamos req.usuario)
-    if (!user) return res.status(401).json({ message: 'No autenticado.' });
+    if (!user) {
+      console.warn("⚠️ Usuario no autenticado.");
+      return res.status(401).json({ message: 'No autenticado.' });
+    }
 
-    // 2. Validar datos mínimos del body
-    if (!nombre || !carrera_id) { // semestre puede ser null según tu tabla
+    if (!nombre || !carrera_id) {
+      console.warn("⚠️ Faltan campos requeridos:", { nombre, carrera_id });
       return res.status(400).json({ message: 'Nombre y carrera_id son requeridos.' });
     }
 
-    // 3. Lógica de validación de permisos para INSERTAR
     if (user.rol_id === ROL_JEFE_CARRERA) {
-        // Si es Jefe de Carrera, verifica que el grupo que intenta crear sea de SU carrera
-        if (user.carrera_id === null || user.carrera_id === undefined) {
-             return res.status(403).json({ message: 'Su usuario no tiene una carrera asignada para crear grupos.' });
-        }
-        // Verifica que el carrera_id proporcionado en el body coincida con el carrera_id del jefe logeado.
-        if (carrera_id !== user.carrera_id) {
-             return res.status(403).json({ message: 'No autorizado para crear grupos en una carrera diferente a la suya.' });
-        }
+      if (user.carrera_id === null || user.carrera_id === undefined) {
+        console.warn("⚠️ Jefe de carrera sin carrera asignada.");
+        return res.status(403).json({ 
+          message: 'Su usuario no tiene una carrera asignada para crear grupos.' 
+        });
+      }
+      if (carrera_id !== user.carrera_id) {
+        console.warn(`⚠️ Jefe de carrera intentando crear grupo en otra carrera: ${carrera_id} !== ${user.carrera_id}`);
+        return res.status(403).json({
+          message: 'No autorizado para crear grupos en una carrera diferente a la suya.'
+        });
+      }
     } else if (user.rol_id !== ROL_ADMINISTRADOR) {
-         // Otros roles no autorizados (Admin ya tiene acceso por defecto si el middleware lo permite)
-         return res.status(403).json({ message: 'No autorizado para crear grupos.' });
+      console.warn("⚠️ Usuario no autorizado. Rol:", user.rol_id);
+      return res.status(403).json({ message: 'No autorizado para crear grupos.' });
     }
-    // Nota: Si es Admin (rol 5), el middleware ya le dio acceso. No validamos qué carrera_id pone aquí en esta versión simplificada.
-    // Para más seguridad, un Admin podría requerir especificar la carrera_id y validarla vs DB.
 
-
-    // 4. Opcional: Verificar si la carrera_id existe en la tabla Carreras si no confías 100% en el frontend
+    console.log("🔍 Verificando existencia de carrera con ID:", carrera_id);
     const carreraExistente = await Carrera.findByPk(carrera_id);
     if (!carreraExistente) {
-         return res.status(404).json({ message: `Carrera con ID ${carrera_id} no encontrada.` });
+      console.warn("⚠️ Carrera no encontrada con ID:", carrera_id);
+      return res.status(404).json({ message: `Carrera con ID ${carrera_id} no encontrada.` });
     }
 
-
-    // 5. Si las validaciones pasaron, crear el grupo
-    const nuevoGrupo = await Grupo.create({ nombre, carrera_id, semestre });
-
-    // Opcional: Recuperar el grupo recién creado con la relación de carrera para la respuesta detallada
-    const grupoCreadoConCarrera = await Grupo.findByPk(nuevoGrupo.id, {
-         include: [{ model: Carrera, as: 'carrera', attributes: ['nombre'] }]
+    console.log("🛠️ Creando grupo...");
+    const nuevoGrupo = await Grupo.create({ 
+      nombre, 
+      carrera_id, 
+      semestre, 
+      escuela_id: user.escuela_id || null // Asegúrate que esto se mande si es obligatorio
     });
 
-    // Responde con éxito
+    console.log("✅ Grupo creado con ID:", nuevoGrupo.id);
+
+    const grupoCreadoConCarrera = await Grupo.findByPk(nuevoGrupo.id, {
+      include: [{ model: Carrera, as: 'carrera', attributes: ['nombre'] }]
+    });
+
     res.status(201).json({
       message: "Grupo creado exitosamente",
-      data: grupoCreadoConCarrera, // Devuelve el objeto completo con relación si lo incluiste
+      data: grupoCreadoConCarrera
     });
   } catch (error) {
-    console.error("Backend: Error en insertarGrupoController:", error);
-    res.status(500).json({ error: "Hubo un error al crear el grupo", details: error.message });
+    console.error("❌ Backend: Error en insertarGrupoController:", error);
+    return res
+      .status(500)
+      .json({ error: "Hubo un error al crear el grupo", details: error.message });
   }
 };
+
 
 /**
  * Obtener un grupo por ID.
