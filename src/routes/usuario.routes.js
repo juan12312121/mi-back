@@ -13,7 +13,10 @@ router.post('/login', usuarioController.login);
 router.post('/crear', authMiddleware, usuarioController.registrarUsuario);
 
 // Crear checador/jefe de grupo (nivel 5 o 4, requiere token)
-router.post('/crear-checador-jefe', authMiddleware, usuarioController.registrarChecadorYJefe);
+router.post(
+  '/crear-checador-jefe',
+   authMiddleware,
+    usuarioController.registrarChecadorYJefe);
 
 // Crear profesores (nivel 5 o 4, requiere token)
 router.post('/crear-profesor', authMiddleware, usuarioController.registrarProfesor);
