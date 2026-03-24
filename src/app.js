@@ -24,7 +24,19 @@ app.use(
   express.static(path.join(__dirname, 'uploads'))
 );
 
-app.use(cors()); // Permitir todos los orígenes
+// Configuración agresiva de CORS para evitar errores en Render/Vercel
+app.use(cors()); 
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH');
+    return res.status(200).json({});
+  }
+  next();
+});
+
 app.use(express.json());
 
 app.use('/api/usuarios', usuarioRoutes);  

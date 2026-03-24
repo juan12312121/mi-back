@@ -170,7 +170,7 @@ const login = async (req, res) => {
 
 
 const crearAdministrador = async (req, res) => {
-  const { nombre, correo, contrasena } = req.body;
+  const { nombre, correo, contrasena, rol_id } = req.body;
 
   try {
     const hashedPassword = await bcrypt.hash(contrasena, 10);
@@ -178,8 +178,9 @@ const crearAdministrador = async (req, res) => {
       nombre,
       correo,
       contrasena: hashedPassword,
-      rol_id: 5,
+      rol_id: rol_id || 5,
       carrera_id: null,
+      escuela_id: null,
     });
 
     const token = generarToken(nuevoAdmin);
