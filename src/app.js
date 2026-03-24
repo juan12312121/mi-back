@@ -24,7 +24,7 @@ app.use(
   express.static(path.join(__dirname, 'uploads'))
 );
 
-app.use(cors());
+app.use(cors()); // Permitir todos los orígenes
 app.use(express.json());
 
 app.use('/api/usuarios', usuarioRoutes);  
