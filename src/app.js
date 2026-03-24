@@ -16,6 +16,7 @@ const asignacionesRoutes = require('./routes/asignaciones.routes')
 const horariosRoutes = require('./routes/horarios.route')
 const asistenciaTemaRoutes = require('./routes/asistenciaTemaRoutes');  // Ruta para manejar la inserción en ambas tablas
 const justificacionesRoutes = require('./routes/justificaciones.Routes');
+const authMiddleware = require('./middlewares/authMiddleware');
 
 
 app.use(
@@ -39,23 +40,39 @@ app.use('/api/asistencia-tema', asistenciaTemaRoutes);
 app.use('/api/justificaciones',justificacionesRoutes);
 
 
-app.get('/api/estadisticas', async (req, res) => {
+app.get('/api/estadisticas', authMiddleware, async (req, res) => {
   try {
-    const [escuelas] = await sequelize.query('SELECT COUNT(*) AS total FROM escuelas');
-    const [facultades] = await sequelize.query('SELECT COUNT(*) AS total FROM facultades');
+    const { escuela_id, rol_id } = req.usuario;
+    let whereClause = '';
+    let whereUserClause = '';
+    let replacements = {};
+
+    if (rol_id === 5) {
+      whereClause = ' WHERE escuela_id = :escuela_id';
+      whereUserClause = ' AND u.escuela_id = :escuela_id';
+      replacements = { escuela_id };
+    }
+
+    const [escuelas] = await sequelize.query(`SELECT COUNT(*) AS total FROM escuelas${rol_id === 5 ? ' WHERE id = :escuela_id' : ''}`, { replacements, type: sequelize.QueryTypes.SELECT });
+    const [facultades] = await sequelize.query(`SELECT COUNT(*) AS total FROM facultades${whereClause}`, { replacements, type: sequelize.QueryTypes.SELECT });
     const [jefes] = await sequelize.query(`
       SELECT COUNT(*) AS total
       FROM usuarios u
       JOIN roles r ON u.rol_id = r.id
-      WHERE r.nombre = 'Jefe de Carrera'
-    `);
-    const [carreras] = await sequelize.query('SELECT COUNT(*) AS total FROM carreras');
+      WHERE r.nombre = 'Jefe de Carrera'${whereUserClause}
+    `, { replacements, type: sequelize.QueryTypes.SELECT });
+    const [carreras] = await sequelize.query(`
+      SELECT COUNT(*) AS total 
+      FROM carreras c
+      JOIN facultades f ON c.facultad_id = f.id
+      ${rol_id === 5 ? 'WHERE f.escuela_id = :escuela_id' : ''}
+    `, { replacements, type: sequelize.QueryTypes.SELECT });
 
     res.json({
-      escuelas: escuelas[0].total,
-      facultades: facultades[0].total,
-      jefes: jefes[0].total,
-      carreras: carreras[0].total
+      escuelas: escuelas.total,
+      facultades: facultades.total,
+      jefes: jefes.total,
+      carreras: carreras.total
     });
   } catch (err) {
     console.error('Error al obtener estadísticas:', err);

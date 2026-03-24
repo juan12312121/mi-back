@@ -81,6 +81,18 @@ const registrarAsistenciaYTema = async (req, res) => {
 
 const obtenerTodasLasAsistencias = async (req, res) => {
   try {
+    const viewer = req.usuario;
+    let whereClause = "WHERE r.nombre = 'Profesor'";
+    let replacements = {};
+
+    if (viewer.rol_id === 4) {
+      whereClause += ' AND m.carrera_id = :carrera_id';
+      replacements.carrera_id = viewer.carrera_id;
+    } else if (viewer.rol_id === 5) {
+      whereClause += ' AND m.escuela_id = :escuela_id';
+      replacements.escuela_id = viewer.escuela_id;
+    }
+
     const results = await sequelize.query(
       `
       SELECT
@@ -101,10 +113,11 @@ const obtenerTodasLasAsistencias = async (req, res) => {
       JOIN usuarios u ON s.profesor_id = u.id
       JOIN roles r ON u.rol_id = r.id
       JOIN usuarios u2 ON a.registrado_por_id = u2.id
-      WHERE r.nombre = 'Profesor'
+      ${whereClause}
       ORDER BY a.fecha DESC;
       `,
       {
+        replacements,
         type: sequelize.QueryTypes.SELECT
       }
     );
@@ -167,6 +180,18 @@ const obtenerAsistenciasPorUsuario = async (req, res) => {
 
 const obtenerTemasVistos = async (req, res) => {
   try {
+    const viewer = req.usuario;
+    let whereClause = "";
+    let replacements = {};
+
+    if (viewer.rol_id === 4) {
+      whereClause = 'WHERE m.carrera_id = :carrera_id';
+      replacements.carrera_id = viewer.carrera_id;
+    } else if (viewer.rol_id === 5) {
+      whereClause = 'WHERE m.escuela_id = :escuela_id';
+      replacements.escuela_id = viewer.escuela_id;
+    }
+
     const results = await sequelize.query(
       `
       SELECT
@@ -176,12 +201,17 @@ const obtenerTemasVistos = async (req, res) => {
         tv.registrado_por_id,
         u.nombre AS registrado_por_nombre,
         DATE(CONVERT_TZ(tv.fecha, '+00:00', '-07:00')) AS fecha,
-        TIME(CONVERT_TZ(tv.fecha, '+00:00', '-07:00')) AS hora
+        TIME(CONVERT_TZ(tv.fecha, '+00:00', '-07:00')) AS hora,
+        m.nombre AS materia_nombre
       FROM temas_vistos tv
       JOIN usuarios u ON tv.registrado_por_id = u.id
+      JOIN asignaciones s ON tv.asignacion_id = s.id
+      JOIN materias m ON s.materia_id = m.id
+      ${whereClause}
       ORDER BY tv.fecha DESC;
       `,
       {
+        replacements,
         type: sequelize.QueryTypes.SELECT
       }
     );

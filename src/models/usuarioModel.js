@@ -5,6 +5,7 @@ const sequelize = require('../config/config');
 const Carrera = require('./carrerasModel');
 const Grupo = require('./gruposModel');
 const Rol = require('./rolesModel');  // Importar el modelo de Rol
+const Escuela = require('./escuelasModel');
 const Usuario = sequelize.define('Usuario', {
   id: {
     type: DataTypes.INTEGER,
@@ -35,6 +36,10 @@ const Usuario = sequelize.define('Usuario', {
   grupo_id: {
     type: DataTypes.INTEGER,
     allowNull: true
+  },
+  escuela_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 }, {
   tableName: 'usuarios',
@@ -59,6 +64,12 @@ Usuario.belongsTo(Grupo, {
 Usuario.belongsTo(Rol, {
   foreignKey: 'rol_id',
   as: 'rol'  // Alias para la relación
+});
+
+// Un usuario pertenece a una escuela
+Usuario.belongsTo(Escuela, {
+  foreignKey: 'escuela_id',
+  as: 'escuela'
 });
 
 module.exports = Usuario;

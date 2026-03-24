@@ -3,8 +3,11 @@ const router = express.Router();
 const usuarioController = require('../controllers/usuario.controller');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Crear administrador (nivel 5, sin autenticación)
+// Crear administrador (nivel 5, sin autenticación - SOLO PARA INSTALACIÓN)
 router.post('/crear-admin', usuarioController.crearAdministrador);
+
+// Crear administrador de escuela (SuperAdmin solamente)
+router.post('/crear-admin-escuela', authMiddleware, usuarioController.registrarAdminEscuela);
 
 // Login
 router.post('/login', usuarioController.login);
@@ -48,7 +51,7 @@ router.get('/:id', authMiddleware, usuarioController.obtenerUsuarioPorId);
 
 router.get(
   '/horarios-profesores/:id',
-
+  authMiddleware,
   usuarioController.listarHorariosProfesores
 );
 
@@ -61,14 +64,14 @@ router.get(
 
 router.get(
   '/asistencias-profesor',
-  
+  authMiddleware,
   usuarioController.obtenerAsistenciasProfesor
 );
 
 // Obtener asistencias de un profesor específico
 router.get(
   '/asistencias-profesor/:profesor_id',
- 
+  authMiddleware,
   usuarioController.obtenerAsistenciasProfesor
 );
 

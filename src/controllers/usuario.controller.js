@@ -15,7 +15,11 @@ const Escuela = require('../models/escuelasModel');
 
 const generarToken = (usuario) => {
   return jwt.sign(
-    { id: usuario.id, rol_id: usuario.rol_id },
+    { 
+      id: usuario.id, 
+      rol_id: usuario.rol_id,
+      escuela_id: usuario.escuela_id 
+    },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -74,6 +78,7 @@ const registrarUsuario = async (req, res) => {
       rol_id,
       carrera_id,
       grupo_id: grupo_id || null, // Se guarda grupo_id si viene, sino null
+      escuela_id: creador.escuela_id // Hereda la escuela del creador
     });
 
     const token = generarToken(nuevoUsuario);
@@ -118,6 +123,7 @@ const registrarChecadorYJefe = async (req, res) => {
       rol_id,
       carrera_id,
       grupo_id: grupo_id || null, // El grupo_id solo es necesario si es Jefe de Grupo
+      escuela_id: creador.escuela_id // Hereda la escuela del creador
     });
 
     // Generar el token JWT
@@ -178,6 +184,37 @@ const crearAdministrador = async (req, res) => {
 
     const token = generarToken(nuevoAdmin);
     res.status(201).json({ usuario: nuevoAdmin, token });
+  } catch (error) {
+    res.status(500).json({ message: 'Error al crear administrador', error: error.message });
+  }
+};
+
+
+const registrarAdminEscuela = async (req, res) => {
+  const { nombre, correo, contrasena, escuela_id } = req.body;
+  const creador = req.usuario;
+
+  // Solo SuperAdmin (6) puede crear administradores de escuela
+  if (creador.rol_id !== 6) {
+    return res.status(403).json({ message: 'No tienes permisos para esta acción' });
+  }
+
+  if (!nombre || !correo || !contrasena || !escuela_id) {
+    return res.status(400).json({ message: 'Faltan campos obligatorios' });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(contrasena, 10);
+    const nuevoAdmin = await Usuario.create({
+      nombre,
+      correo,
+      contrasena: hashedPassword,
+      rol_id: 5, // Administrador de Escuela
+      escuela_id,
+      carrera_id: null,
+    });
+
+    res.status(201).json({ usuario: nuevoAdmin });
   } catch (error) {
     res.status(500).json({ message: 'Error al crear administrador', error: error.message });
   }
@@ -253,6 +290,17 @@ const listarUsuarios = async (req, res) => {
 
   try {
     // Consulta SQL con JOIN para obtener rol_id
+    let filterClause = 'u.rol_id IN (2, 3)'; 
+    let replacements = {};
+
+    if (viewer.rol_id === 5) {
+      filterClause += ' AND u.escuela_id = :escuela_id';
+      replacements = { escuela_id: viewer.escuela_id };
+    } else if (viewer.rol_id === 4) {
+      filterClause += ' AND u.carrera_id = :carrera_id';
+      replacements = { carrera_id: viewer.carrera_id };
+    }
+
     const query = `
       SELECT
         u.id,
@@ -268,11 +316,11 @@ const listarUsuarios = async (req, res) => {
       LEFT JOIN
         carreras c ON u.carrera_id = c.id
       WHERE
-        u.rol_id IN (2, 3); -- Solo usuarios con rol_id 2 y 3
+        ${filterClause};
     `;
 
     // Ejecutar la consulta SQL
-    const [usuarios] = await sequelize.query(query);
+    const [usuarios] = await sequelize.query(query, { replacements });
 
     console.log('Usuarios obtenidos:', usuarios);
     res.json({ usuarios });
@@ -314,16 +362,19 @@ const obtenerJefesCarrera = async (req, res) => {
         escuelas e ON f.escuela_id = e.id
       WHERE
         u.rol_id = 4
+        ${req.usuario.rol_id === 5 ? 'AND u.escuela_id = :escuela_id' : ''}
       ORDER BY
         u.nombre ASC;
     `;
 
     // Ejecutar la consulta SQL
-    const [jefes] = await sequelize.query(query);
+    const [jefes] = await sequelize.query(query, { 
+      replacements: { escuela_id: req.usuario.escuela_id } 
+    });
 
     // Si no se encuentran jefes de carrera
     if (jefes.length === 0) {
-      return res.status(404).json({ message: 'No se encontraron jefes de carrera' });
+      return res.status(200).json({ jefes: [] });
     }
 
     // Responder con los datos de los jefes, dentro de la propiedad "jefes"
@@ -495,29 +546,63 @@ const actualizarProfesor = async (req, res) => {
 
 const listarHorariosProfesores = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { profesor_id } = req.params;
 
-    console.log('📥 Solicitud recibida para listar horarios del profesor con ID:', id);
+    console.log('📥 Solicitud recibida para listar horarios del profesor con ID:', profesor_id);
 
-    let query = 'SELECT * FROM vista_horarios_profesores';
+    // Si la vista 'vista_horarios_profesores' no existe, usamos una consulta directa
+    // que es más robusta y segura.
+    let query = `
+      SELECT 
+        h.id,
+        h.dia_semana,
+        h.hora_inicio,
+        h.hora_fin,
+        h.turno,
+        h.tipo_duracion,
+        h.duracion_clase,
+        h.tiempo_descanso,
+        m.nombre AS materia,
+        g.nombre AS grupo,
+        a.nombre AS aula,
+        u.nombre AS profesor,
+        u.id AS profesor_id
+      FROM horarios h
+      JOIN asignaciones asg ON h.asignacion_id = asg.id
+      JOIN materias m ON asg.materia_id = m.id
+      JOIN usuarios u ON asg.profesor_id = u.id
+      LEFT JOIN grupos g ON h.grupo_id = g.id
+      LEFT JOIN aulas a ON h.aula_id = a.id
+    `;
+    
     const replacements = [];
 
-    if (id) {
-      query += ' WHERE profesor_id = ?';
-      replacements.push(id);
+    if (profesor_id) {
+      query += ' WHERE u.id = ?';
+      replacements.push(profesor_id);
     }
+
+    query += ' ORDER BY FIELD(h.dia_semana, "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"), h.hora_inicio ASC';
 
     console.log('📄 Consulta a ejecutar:', query);
     console.log('📦 Reemplazos:', replacements);
 
-    // Ejecuta la consulta sobre la vista
-    const [horariosProfesores] = await sequelize.query(query, { replacements });
+    const result = await sequelize.query(query, { 
+      replacements,
+      type: sequelize.QueryTypes.SELECT 
+    });
 
-    console.log('📊 Resultados obtenidos:', horariosProfesores);
+    // Asegurarse de que horariosProfesores sea un array
+    const horariosProfesores = Array.isArray(result) ? result : (result ? [result] : []);
 
-    if (!horariosProfesores.length) {
-      console.warn('⚠️ No se encontraron horarios para el profesor con ID:', id);
-      return res.status(404).json({ message: 'No se encontraron horarios para el criterio dado' });
+    console.log('📊 Resultados obtenidos (procesados):', horariosProfesores);
+
+    if (horariosProfesores.length === 0) {
+      console.warn('⚠️ No se encontraron horarios para el profesor con ID:', profesor_id);
+      return res.status(200).json({ 
+        horariosProfesores: [],
+        message: 'No se encontraron horarios para este profesor' 
+      });
     }
 
     res.json({ horariosProfesores });
@@ -583,5 +668,6 @@ module.exports = {
   listarProfesores,
   actualizarProfesor,
   listarHorariosProfesores,
-  obtenerAsistenciasProfesor
+  obtenerAsistenciasProfesor,
+  registrarAdminEscuela,
 };

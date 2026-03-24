@@ -7,10 +7,21 @@ const Escuela = require('../models/escuelasModel');
 // Obtener todas las facultades, cargando nombre de escuela por lookup
 const obtenerTodasFacultadesConEscuela = async (req, res) => {
   try {
-    // 1) Traemos todas las facultades (sin join)
+    const { escuela_id, rol_id } = req.usuario;
+    let query = `SELECT * FROM facultades`;
+    let replacements = {};
+
+    if (rol_id === 5) {
+      query += ` WHERE escuela_id = :escuela_id`;
+      replacements = { escuela_id };
+    }
+
     const facultadesRaw = await sequelize.query(
-      `SELECT * FROM facultades`,
-      { type: QueryTypes.SELECT }
+      query,
+      { 
+        replacements,
+        type: QueryTypes.SELECT 
+      }
     );
 
     // 2) Para cada facultad, buscamos la escuela por su ID y añadimos el nombre
@@ -66,19 +77,27 @@ const obtenerFacultadConEscuela = async (req, res) => {
 // Agregar una nueva facultad — inserta sólo escuela_id, no el nombre
 const agregarFacultad = async (req, res) => {
   try {
-    const { nombre, escuela_id, descripcion, email_contacto, telefono_contacto } = req.body;
+    const { nombre, escuela_id: body_escuela_id, descripcion, email_contacto, telefono_contacto } = req.body;
+    const { escuela_id: user_escuela_id, rol_id } = req.usuario;
 
-    // 1) Creamos la facultad pasando sólo el ID de la escuela
+    // Si es admin de escuela (nivel 5) o jefe de carrera (nivel 4), ignoramos lo que venga en el body y usamos su escuela
+    const final_escuela_id = (rol_id === 5 || rol_id === 4) ? user_escuela_id : body_escuela_id;
+
+    if (!final_escuela_id) {
+       return res.status(400).json({ error: 'Falta escuela_id' });
+    }
+
+    // 1) Creamos la facultad
     const nuevaFacultad = await Facultad.create({
       nombre,
-      escuela_id,          // aquí guardamos sólo el id
+      escuela_id: final_escuela_id,
       descripcion,
       email_contacto,
       telefono_contacto
     });
 
     // 2) Hacemos lookup para devolver también el nombre de la escuela en la respuesta
-    const escuela = await Escuela.findByPk(escuela_id);
+    const escuela = await Escuela.findByPk(final_escuela_id);
 
     res.status(201).json({
       message: 'Facultad creada con éxito',
@@ -88,7 +107,7 @@ const agregarFacultad = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error('[Error en agregarFacultad]:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 };

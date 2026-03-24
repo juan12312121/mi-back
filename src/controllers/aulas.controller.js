@@ -2,8 +2,10 @@ const Aula = require('../models/aulasModel');
 
 // Obtener todas las aulas
 const obtenerAulas = async (req, res) => {
+  const user = req.usuario;
   try {
-    const aulas = await Aula.findAll();
+    const where = user.rol_id === 5 ? { escuela_id: user.escuela_id } : {};
+    const aulas = await Aula.findAll({ where });
     res.json({ success: true, data: aulas });
   } catch (error) {
     console.error('Error al obtener aulas:', error);
@@ -29,8 +31,12 @@ const obtenerAulaPorId = async (req, res) => {
 // Crear una nueva aula
 const crearAula = async (req, res) => {
   const { nombre } = req.body;
+  const user = req.usuario;
   try {
-    const nuevaAula = await Aula.create({ nombre });
+    const nuevaAula = await Aula.create({ 
+      nombre,
+      escuela_id: user.escuela_id
+    });
     res.status(201).json({ success: true, data: nuevaAula });
   } catch (error) {
     console.error('Error al crear aula:', error);

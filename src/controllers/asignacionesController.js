@@ -4,6 +4,19 @@ const sequelize = require('../config/config'); // Ajusta el path si es necesario
 // Obtener todas las asignaciones (consulta manual)
 const obtenerAsignaciones = async (req, res) => {
   try {
+    const viewer = req.usuario;
+    let whereClause = 'WHERE usuarios.rol_id = 1';
+    let replacements = {};
+
+    if (viewer.rol_id === 4) {
+      whereClause += ' AND materias.carrera_id = :carrera_id';
+      replacements.carrera_id = viewer.carrera_id;
+    } else if (viewer.rol_id === 5) {
+      // Opcionalmente filtrar por escuela para administradores
+      whereClause += ' AND materias.escuela_id = :escuela_id';
+      replacements.escuela_id = viewer.escuela_id;
+    }
+
     const [asignaciones] = await sequelize.query(`
       SELECT 
         asignaciones.id,
@@ -12,8 +25,8 @@ const obtenerAsignaciones = async (req, res) => {
       FROM asignaciones
       INNER JOIN usuarios ON asignaciones.profesor_id = usuarios.id
       INNER JOIN materias ON asignaciones.materia_id = materias.id
-      WHERE usuarios.rol_id = 1;  -- Asegúrate de filtrar solo los profesores
-    `);
+      ${whereClause}
+    `, { replacements });
 
     res.json(asignaciones);
   } catch (error) {

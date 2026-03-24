@@ -11,6 +11,10 @@ const Aula = sequelize.define('Aula', {
   nombre: {
     type: DataTypes.STRING(100),
     allowNull: false
+  },
+  escuela_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 }, {
   tableName: 'aulas',

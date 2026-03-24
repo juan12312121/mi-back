@@ -45,9 +45,18 @@ const crearJustificacion = async (req, res) => {
 // 📌 Función para obtener TODAS las justificaciones desde la vista
 const obtenerTodasLasJustificaciones = async (req, res) => {
   try {
-    const [rows] = await sequelize.query(
-      'SELECT * FROM vista_asistencias_justificadas'
-    );
+    const viewer = req.usuario;
+    let query = 'SELECT * FROM vista_asistencias_justificadas';
+    let replacements = {};
+
+    if (viewer.rol_id === 4) {
+      query += ' WHERE carrera_id = :carrera_id';
+      replacements.carrera_id = viewer.carrera_id;
+    } else if (viewer.rol_id === 5) {
+      // Opcionalmente filtrar por escuela
+    }
+
+    const [rows] = await sequelize.query(query, { replacements });
     return res.json({ total: rows.length, justificaciones: rows });
   } catch (error) {
     console.error('Error al obtener todas las justificaciones:', error);

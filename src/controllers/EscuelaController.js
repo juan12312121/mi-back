@@ -1,10 +1,14 @@
 const Escuela = require('../models/escuelasModel');  // Sin desestructuración
 
 // Verificar si el usuario tiene el nivel adecuado para insertar escuela
-const verificarNivelUsuario = (req) => {
-  const usuario = req.usuario; // Asegúrate de que 'usuario' esté en el objeto 'req'
+const verificarNivelUsuario = (req, levelRequired = 5) => {
+  const usuario = req.usuario; 
 
-  if (usuario && usuario.rol_id === 5) {
+  if (usuario && usuario.rol_id === levelRequired) {
+    return true;
+  }
+  // SuperAdmin (6) can do anything
+  if (usuario && usuario.rol_id === 6) {
     return true;
   }
 
@@ -15,10 +19,10 @@ const verificarNivelUsuario = (req) => {
 const insertarEscuela = async (req, res) => {
   console.log('Verificando nivel de usuario...');
   
-  if (!verificarNivelUsuario(req)) {
-    console.error('Acceso denegado: Usuario no tiene el nivel adecuado.');
+  if (!verificarNivelUsuario(req, 6)) {
+    console.error('Acceso denegado: Solo SuperAdmin puede insertar escuelas.');
     return res.status(403).json({
-      message: 'Acceso denegado: solo usuarios con nivel 5 pueden insertar escuelas.'
+      message: 'Acceso denegado: solo Super Administradores pueden insertar escuelas.'
     });
   }
 
@@ -47,16 +51,17 @@ const insertarEscuela = async (req, res) => {
 const verEscuelas = async (req, res) => {
     console.log('Verificando nivel de usuario para ver escuelas...');
 
-    if (!verificarNivelUsuario(req)) {
-        console.error('Acceso denegado: Usuario no tiene el nivel adecuado.');
-        return res.status(403).json({
-            message: 'Acceso denegado: solo usuarios con nivel 5 pueden ver las escuelas.'
-        });
-    }
+    // No bloquear aquí, manejaremos la lógica dentro según el rol
 
     try {
-        console.log('Consultando todas las escuelas...');
-        const escuelas = await Escuela.findAll();  // Obtiene todas las escuelas de la base de datos
+        const { rol_id, escuela_id } = req.usuario;
+        let escuelas;
+        
+        if (rol_id === 6) {
+           escuelas = await Escuela.findAll();
+        } else {
+           escuelas = await Escuela.findAll({ where: { id: escuela_id } });
+        }
 
         if (escuelas.length === 0) {
             return res.status(404).json({ message: 'No se encontraron escuelas.' });
@@ -73,10 +78,9 @@ const verEscuelas = async (req, res) => {
 const actualizarEscuela = async (req, res) => {
     console.log('Verificando nivel de usuario para actualizar escuela...');
   
-    if (!verificarNivelUsuario(req)) {
-      console.error('Acceso denegado: Usuario no tiene el nivel adecuado.');
+    if (!verificarNivelUsuario(req, 6)) {
       return res.status(403).json({
-        message: 'Acceso denegado: solo usuarios con nivel 5 pueden actualizar escuelas.'
+        message: 'Acceso denegado: solo Super Administradores pueden actualizar escuelas.'
       });
     }
   
@@ -114,10 +118,9 @@ const actualizarEscuela = async (req, res) => {
     console.log('Verificando nivel de usuario para eliminar escuela...');
   
     // Verificamos que el usuario tenga el nivel adecuado para eliminar
-    if (!verificarNivelUsuario(req)) {
-      console.error('Acceso denegado: Usuario no tiene el nivel adecuado.');
+    if (!verificarNivelUsuario(req, 6)) {
       return res.status(403).json({
-        message: 'Acceso denegado: solo usuarios con nivel 5 pueden eliminar escuelas.'
+        message: 'Acceso denegado: solo Super Administradores pueden eliminar escuelas.'
       });
     }
   

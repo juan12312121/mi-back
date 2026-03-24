@@ -28,6 +28,10 @@ Grupo.init(
       type: DataTypes.STRING(20), // puedes ajustar el largo si quieres
       allowNull: true,
     },
+    escuela_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   {
     sequelize,

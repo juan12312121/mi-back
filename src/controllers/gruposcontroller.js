@@ -43,10 +43,10 @@ const obtenerGrupos = async (req, res) => {
       ];
 
       // --- Lógica de validación de permisos y construcción del filtro ---
-      // 1. Si el usuario es Administrador (rol_id 5): puede ver TODOS los grupos.
+      // 1. Si el usuario es Administrador (rol_id 5): puede ver los grupos de su escuela.
       if (user.rol_id === ROL_ADMINISTRADOR) {
-          console.log('Backend: Usuario es Administrador. Obteniendo todos los grupos.');
-          // No aplicamos filtro de carrera en el WHERE por defecto para el admin.
+          console.log('Backend: Usuario es Administrador. Obteniendo grupos de su escuela.');
+          whereCondition = { escuela_id: user.escuela_id };
       }
       // 2. Si el usuario es Jefe de Carrera (rol_id 4):
       else if (user.rol_id === ROL_JEFE_CARRERA) {
@@ -148,7 +148,7 @@ const insertarGrupo = async (req, res) => {
       nombre, 
       carrera_id, 
       semestre, 
-      escuela_id: user.escuela_id || null // Asegúrate que esto se mande si es obligatorio
+      escuela_id: user.escuela_id
     });
 
     console.log("✅ Grupo creado con ID:", nuevoGrupo.id);

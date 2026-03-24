@@ -23,9 +23,10 @@ const verificarToken = async (req, res, next) => {
       return res.status(401).json({ message: "Usuario no encontrado" });
     }
 
-    // 5. Verifica si el usuario tiene el id 4 (jefe de carrera) o si su rol es 5 (otro rol permitido)
-    if (usuario.rol_id !== 4 && usuario.rol_id !== 5) {
-      // Permite el acceso si el rol es 4 (jefe de carrera) o rol 5
+    // 5. Verifica si el usuario tiene un rol válido del sistema
+    // 1=Profesor, 2=Checador, 3=Jefe de Grupo, 4=Jefe de Carrera, 5=Administrador, 6=SuperAdmin
+    const rolesPermitidos = [1, 2, 3, 4, 5, 6];
+    if (!rolesPermitidos.includes(usuario.rol_id)) {
       return res.status(403).json({ message: "Acceso denegado" });
     }
 

@@ -22,6 +22,15 @@ const crearCarrera = async (req, res) => {
 // Controlador para obtener todas las carreras con JOIN a facultades y escuelas
 const obtenerCarreras = async (req, res) => {
   try {
+    const { escuela_id, rol_id } = req.usuario;
+    let whereClause = '';
+    let replacements = {};
+
+    if (rol_id === 5) {
+      whereClause = ' WHERE f.escuela_id = :escuela_id';
+      replacements = { escuela_id };
+    }
+
     const [carreras] = await sequelize.query(`
       SELECT 
         c.id AS carrera_id,
@@ -31,8 +40,9 @@ const obtenerCarreras = async (req, res) => {
       FROM carreras c
       INNER JOIN facultades f ON c.facultad_id = f.id
       INNER JOIN escuelas e ON f.escuela_id = e.id
+      ${whereClause}
       ORDER BY c.id ASC
-    `);
+    `, { replacements });
     res.status(200).json(carreras);
   } catch (error) {
     res.status(500).json({ error: 'Error al obtener las carreras', details: error.message });

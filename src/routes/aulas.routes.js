@@ -8,11 +8,13 @@ const {
   eliminarAula
 } = require('../controllers/aulas.controller');
 
+const verificarToken = require('../middlewares/authMiddleware');
+
 // Rutas CRUD para aulas
-router.get('/', obtenerAulas);             
-router.get('/:id', obtenerAulaPorId);      
-router.post('/', crearAula);               
-router.put('/:id', actualizarAula);       
-router.delete('/:id', eliminarAula);       
+router.get('/', verificarToken, obtenerAulas);             
+router.get('/:id', verificarToken, obtenerAulaPorId);      
+router.post('/', verificarToken, crearAula);               
+router.put('/:id', verificarToken, actualizarAula);       
+router.delete('/:id', verificarToken, eliminarAula);       
 
 module.exports = router;
